@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
-import os
 import sys
 import json
 import argparse
-import httplib2
 import smtplib
 from youtube import *
 from config import *
