@@ -2,6 +2,7 @@
 
 from youtube import *
 from resources import *
+from apiclient.errors import HttpError
 
 if __name__ == "__main__":
     args = process_arguments()
