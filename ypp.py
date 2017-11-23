@@ -10,12 +10,9 @@ if __name__ == "__main__":
     opt.process_options(args)
 
     videos_dict_exists = False
-    #global youtube
 
     try:
-        #create_resource_object(opt.id, opt.username, args)
         youtube = create_resource_object(opt.id, opt.username, args)
-        #global youtube = create_resource_object(opt.id, opt.username, args)
 
         if (args.id or opt.id_config and args.username is None):
             req = create_id_request(opt.id)

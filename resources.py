@@ -72,11 +72,8 @@ def patch_playlists(playlists_request):
 
     try:
         with open('videos_dict.json', 'r') as f:
-        #with open('videos_dict.json', 'a+') as f:
             try:
                 videos_dict = json.load(f)
-
-                #print json.dumps(videos_dict, indent=4, separators=(',',':'))
 
                 if videos_dict is not None:
                     VIDEOS_DICT_EXISTS = True
@@ -140,8 +137,6 @@ def patch_playlists(playlists_request):
     s = smtplib.SMTP(host=HOST, port=PORT)
     s.sendmail(EMAIL_FROM, [EMAIL_TO], msg.as_string())
     s.quit()
-
-    #print json.dumps(videos_dict, indent=4, separators=(',',':'))
 
 #    with open("videos_dict.json", "w") as f:
 #        json.dump(videos_dict, f)
