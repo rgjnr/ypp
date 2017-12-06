@@ -10,8 +10,6 @@ if __name__ == "__main__":
     opt = Options()
     opt.process_options(args)
 
-    videos_dict_exists = False
-
     try:
         youtube = create_resource_object(opt.id, opt.username, args)
 

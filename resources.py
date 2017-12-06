@@ -66,25 +66,39 @@ def process_arguments():
 
     return parser.parse_args()
 
-# Checks playlists for missing videos (deleted or private) using the provided request
-def patch_playlists(playlists_request):
-    email_message = ""
-
+# open videos_dict.json file and deserialize videos dictionary
+def open_videos_dict(vd):
     try:
         with open('videos_dict.json', 'r') as f:
             try:
-                videos_dict = json.load(f)
+                # use update method of dict object to force updating original
+                # dict object passed from patch_playlists()
+                vd.update(json.load(f))
 
-                if videos_dict is not None:
+                if vd is not None:
                     VIDEOS_DICT_EXISTS = True
 
                 f.closed
             except:
-                videos_dict = {}
                 VIDEOS_DICT_EXISTS = False
     except:
-        videos_dict = {}
         VIDEOS_DICT_EXISTS = False
+
+    return VIDEOS_DICT_EXISTS
+
+# serialze videos dictionary and write to videos_dict.json file
+def write_videos_dict(vd):
+    with open("videos_dict.json", "w") as f:
+        json.dump(vd, f)
+
+    f.closed
+
+# Checks playlists for missing videos (deleted or private) using the provided request
+def patch_playlists(playlists_request):
+    videos_dict = {}
+    email_message = ""
+
+    VIDEOS_DICT_EXISTS = open_videos_dict(videos_dict)
 
     # Fetch pages of playlists until end
     while playlists_request:
@@ -138,10 +152,7 @@ def patch_playlists(playlists_request):
     s.sendmail(EMAIL_FROM, [EMAIL_TO], msg.as_string())
     s.quit()
 
-#    with open("videos_dict.json", "w") as f:
-#        json.dump(videos_dict, f)
-#
-#    f.closed
+    #write_videos_dict(videos_dict)
 
 def replace_video(video_title, playlist_id):
     video_search_request = create_video_search_request(video_title)
