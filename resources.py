@@ -115,26 +115,35 @@ def patch_playlists(playlists_request):
                 if VIDEOS_DICT_EXISTS:
                     # Check videos in response
                     for i, video in enumerate(playlist_items_response["items"], start=1):
+                        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
+                        video_title = video["snippet"]["title"].encode("utf-8")
+                        video_id = video["snippet"]["resourceId"]["videoId"]
+                        playlist_title = playlist["snippet"]["title"].encode("utf-8")
+
                         # Check if video deleted or private in response AND if video already in videos_dict
-                        if (video["status"]["privacyStatus"].encode("utf-8") == "private" or video["snippet"]["title"].encode("utf-8") == "Deleted video") and video["snippet"]["resourceId"]["videoId"] in videos_dict:
+                        if (video_privacy_status == "private" or video_title == "Deleted video") and video_id in videos_dict:
                             print "Found bad video with record"
                             print "{} missing from {}".format(videos_dict[video["snippet"]["resourceId"]["videoId"]], playlist["snippet"]["title"].encode("utf-8"))
 
-                            bad_video_message = "{} missing from {}".format(videos_dict[video["snippet"]["resourceId"]["videoId"]], playlist["snippet"]["title"].encode("utf-8"))
+                            bad_video_message = "{} missing from {}".format(videos_dict[video_id], playlist_title)
 
                             # add to email message
                             email_message += bad_video_message
 
-                            #replace_video(videos_dict[video["snippet"]["resourceId"]["videoId"]], playlist["id"])
+                            #replace_video(videos_dict[video_id], playlist["id"])
 #
 #                            # remove old bad entry
-#                            del videos_dict[video["snippet"]["resourceId"]["videoId"]]
+#                            del videos_dict[video_id]
                 else:
                     # Check videos in response
                     for i, video in enumerate(playlist_items_response["items"], start=1):
+                        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
+                        video_title = video["snippet"]["title"].encode("utf-8")
+                        video_id = video["snippet"]["resourceId"]["videoId"]
+
                         # Create entries for videos in videos dictionary that are not deleted or private
-                        if not (video["status"]["privacyStatus"].encode("utf-8") == "private" or video["snippet"]["title"].encode("utf-8") == "Deleted video"):
-                            videos_dict[video["snippet"]["resourceId"]["videoId"]] = video["snippet"]["title"].encode("utf-8")
+                        if not (video_privacy_status == "private" or video_title == "Deleted video"):
+                            videos_dict[video_id] = video_title
 
                 # Request next page of videos
                 playlist_items_request = create_next_page_request("playlistItem", playlist_items_request, playlist_items_response)
