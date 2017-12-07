@@ -23,11 +23,11 @@ if __name__ == "__main__":
             req = create_private_request()
             ch_req = create_private_channel_request()
 
-        patch_playlists(req)
+        process_request(req)
 
         if (opt.related):
             req = create_related_request(ch_req)
-            patch_playlists(req)
+            process_request(req)
 
     except HttpError as e:
         print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)

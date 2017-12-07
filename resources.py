@@ -72,7 +72,7 @@ def open_videos_dict(vd):
         with open('videos_dict.json', 'r') as f:
             try:
                 # use update method of dict object to force updating original
-                # dict object passed from patch_playlists()
+                # dict object passed from process_request()
                 vd.update(json.load(f))
 
                 if vd is not None:
@@ -93,8 +93,8 @@ def write_videos_dict(vd):
 
     f.closed
 
-# Checks playlists for missing videos (deleted or private) using the provided request
-def patch_playlists(playlists_request):
+# Main entry point for beginning checking of user's playlists using supplied request
+def process_request(playlists_request):
     videos_dict = {}
     email_message = ""
 
