@@ -129,6 +129,16 @@ def create_videos_dict(vd, plir):
     if not (video_privacy_status == "private" or video_title == "Deleted video"):
         vd.update(video_id=video_title)
 
+def send_email_notification(message):
+    msg = MIMEText(message)
+    msg['Subject'] = EMAIL_SUBJECT
+    msg['From'] = EMAIL_FROM
+    msg['To'] = EMAIL_TO
+
+    s = smtplib.SMTP(host=HOST, port=PORT)
+    s.sendmail(EMAIL_FROM, [EMAIL_TO], msg.as_string())
+    s.quit()
+
 # Main entry point for beginning checking of user's playlists using supplied request
 def process_request(playlists_request):
     videos_dict = {}
@@ -159,15 +169,7 @@ def process_request(playlists_request):
         # Request next page of playlists
         playlists_request = create_next_page_request("playlist", playlists_request, playlists_response)
 
-    # send email notification
-    msg = MIMEText(email_message)
-    msg['Subject'] = EMAIL_SUBJECT
-    msg['From'] = EMAIL_FROM
-    msg['To'] = EMAIL_TO
-
-    s = smtplib.SMTP(host=HOST, port=PORT)
-    s.sendmail(EMAIL_FROM, [EMAIL_TO], msg.as_string())
-    s.quit()
+    send_email_notification(email_message)
 
     #write_videos_dict(videos_dict)
 
