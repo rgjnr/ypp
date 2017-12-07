@@ -118,6 +118,17 @@ def patch_playlists(vd, pl, plir):
 
     return bad_video_message
 
+def create_videos_dict(vd, plir):
+    # Check videos in response
+    for i, video in enumerate(plir["items"], start=1):
+        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
+        video_title = video["snippet"]["title"].encode("utf-8")
+        video_id = video["snippet"]["resourceId"]["videoId"]
+
+    # Create entries for videos in videos dictionary that are not deleted or private
+    if not (video_privacy_status == "private" or video_title == "Deleted video"):
+        vd.update(video_id=video_title)
+
 # Main entry point for beginning checking of user's playlists using supplied request
 def process_request(playlists_request):
     videos_dict = {}
@@ -140,15 +151,7 @@ def process_request(playlists_request):
                 if VIDEOS_DICT_EXISTS:
                     email_message += patch_playlists(videos_dict, playlist, playlist_items_response)
                 else:
-                    # Check videos in response
-                    for i, video in enumerate(playlist_items_response["items"], start=1):
-                        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
-                        video_title = video["snippet"]["title"].encode("utf-8")
-                        video_id = video["snippet"]["resourceId"]["videoId"]
-
-                        # Create entries for videos in videos dictionary that are not deleted or private
-                        if not (video_privacy_status == "private" or video_title == "Deleted video"):
-                            videos_dict[video_id] = video_title
+                    create_videos_dict(videos_dict, playlist_items_response)
 
                 # Request next page of videos
                 playlist_items_request = create_next_page_request("playlistItem", playlist_items_request, playlist_items_response)
