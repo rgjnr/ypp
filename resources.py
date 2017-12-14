@@ -96,12 +96,14 @@ def write_videos_dict(vd):
 # Analyze videos_dict and playlist responses for determining unavailaable videos
 def patch_playlists(vd, pl, plir):
     bad_video_message = ""
+    video_ids = ""
 
     # Check videos in response
     for i, video in enumerate(plir["items"], start=1):
         video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
         video_title = video["snippet"]["title"].encode("utf-8")
         video_id = video["snippet"]["resourceId"]["videoId"]
+        video_ids += "{},".format(video_id)
         playlist_title = pl["snippet"]["title"].encode("utf-8")
 
         # Check if video deleted or private in response AND if video already in videos_dict
@@ -115,6 +117,19 @@ def patch_playlists(vd, pl, plir):
 
             # remove old bad entry
             #del vd[video_id]
+
+    video_list_request = create_video_list_request(video_ids)
+    video_list_response = video_list_request.execute()
+
+    try:
+        if "US" in video_list_response["items"][0]["contentDetails"]["regionRestriction"]["blocked"]:
+            print "{} in playlist {} blocked in US".format(video_title, playlist_title)
+            
+            #replace_video()
+    except (IndexError, TypeError, KeyError):
+        pass
+
+    #if has allowed and not US:
 
     return bad_video_message
 
