@@ -130,7 +130,13 @@ def patch_playlists(vd, pl, plir):
         except (IndexError, TypeError, KeyError):
             pass
 
-            #if has allowed and not US:
+        try:
+            if "US" not in item["contentDetails"]["regionRestriction"]["allowed"]:
+                print "{} in playlist {} not allowed in US".format(item["snippet"]["title"].encode("utf-8"), pl["snippet"]["title"].encode("utf-8"))
+
+                #replace_video()
+        except (IndexError, TypeError, KeyError):
+            pass
 
     return bad_video_message
 
