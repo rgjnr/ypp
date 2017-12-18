@@ -103,7 +103,6 @@ def patch_playlists(vd, pl, plir):
         video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
         video_title = video["snippet"]["title"].encode("utf-8")
         video_id = video["snippet"]["resourceId"]["videoId"]
-        video_ids += "{},".format(video_id)
         playlist_title = pl["snippet"]["title"].encode("utf-8")
 
         # Check if video deleted or private in response AND if video already in videos_dict
@@ -117,6 +116,10 @@ def patch_playlists(vd, pl, plir):
 
             # remove old bad entry
             #del vd[video_id]
+
+    for video in plir["items"]:
+        video_id = video["snippet"]["resourceId"]["videoId"]
+        video_ids += "{},".format(video_id)
 
     video_list_request = create_video_list_request(video_ids)
     video_list_response = video_list_request.execute()
