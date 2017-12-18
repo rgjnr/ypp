@@ -93,29 +93,8 @@ def write_videos_dict(vd):
 
     f.closed
 
-# Analyze videos_dict and playlist responses for determining unavailaable videos
-def patch_playlists(vd, pl, plir):
-    bad_video_message = ""
+def check_region_restrictions(pl, plir):
     video_ids = ""
-
-    # Check videos in response
-    for i, video in enumerate(plir["items"], start=1):
-        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
-        video_title = video["snippet"]["title"].encode("utf-8")
-        video_id = video["snippet"]["resourceId"]["videoId"]
-        playlist_title = pl["snippet"]["title"].encode("utf-8")
-
-        # Check if video deleted or private in response AND if video already in videos_dict
-        if (video_privacy_status == "private" or video_title == "Deleted video") and video_id in vd:
-            print "Found bad video with record"
-            print "{} missing from {}".format(vd[video["snippet"]["resourceId"]["videoId"]], pl["snippet"]["title"].encode("utf-8"))
-
-            bad_video_message += "{} missing from {}".format(vd[video_id], playlist_title)
-
-            #replace_video(vd[video_id], pl["id"])
-
-            # remove old bad entry
-            #del vd[video_id]
 
     for video in plir["items"]:
         video_id = video["snippet"]["resourceId"]["videoId"]
@@ -140,6 +119,31 @@ def patch_playlists(vd, pl, plir):
                 #replace_video()
         except (IndexError, TypeError, KeyError):
             pass
+
+# Analyze videos_dict and playlist responses for determining unavailaable videos
+def patch_playlists(vd, pl, plir):
+    bad_video_message = ""
+
+    # Check videos in response
+    for i, video in enumerate(plir["items"], start=1):
+        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
+        video_title = video["snippet"]["title"].encode("utf-8")
+        video_id = video["snippet"]["resourceId"]["videoId"]
+        playlist_title = pl["snippet"]["title"].encode("utf-8")
+
+        # Check if video deleted or private in response AND if video already in videos_dict
+        if (video_privacy_status == "private" or video_title == "Deleted video") and video_id in vd:
+            print "Found bad video with record"
+            print "{} missing from {}".format(vd[video["snippet"]["resourceId"]["videoId"]], pl["snippet"]["title"].encode("utf-8"))
+
+            bad_video_message += "{} missing from {}".format(vd[video_id], playlist_title)
+
+            #replace_video(vd[video_id], pl["id"])
+
+            # remove old bad entry
+            #del vd[video_id]
+
+    check_region_restrictions(pl, plir)
 
     return bad_video_message
 
