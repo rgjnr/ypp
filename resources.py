@@ -121,15 +121,16 @@ def patch_playlists(vd, pl, plir):
     video_list_request = create_video_list_request(video_ids)
     video_list_response = video_list_request.execute()
 
-    try:
-        if "US" in video_list_response["items"][0]["contentDetails"]["regionRestriction"]["blocked"]:
-            print "{} in playlist {} blocked in US".format(video_title, playlist_title)
-            
-            #replace_video()
-    except (IndexError, TypeError, KeyError):
-        pass
+    for item in video_list_response["items"]:
+        try:
+            if "US" in item["contentDetails"]["regionRestriction"]["blocked"]:
+                print "{} in playlist {} blocked in US".format(item["snippet"]["title"].encode("utf-8"), pl["snippet"]["title"].encode("utf-8"))
 
-    #if has allowed and not US:
+                #replace_video()
+        except (IndexError, TypeError, KeyError):
+            pass
+
+            #if has allowed and not US:
 
     return bad_video_message
 
