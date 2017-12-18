@@ -95,6 +95,7 @@ def write_videos_dict(vd):
 
 def check_region_restrictions(pl, plir):
     video_ids = ""
+    playlist_title = pl["snippet"]["title"].encode("utf-8")
 
     for video in plir["items"]:
         video_id = video["snippet"]["resourceId"]["videoId"]
@@ -104,9 +105,11 @@ def check_region_restrictions(pl, plir):
     video_list_response = video_list_request.execute()
 
     for item in video_list_response["items"]:
+        video_title = item["snippet"]["title"].encode("utf-8")
+
         try:
             if "US" in item["contentDetails"]["regionRestriction"]["blocked"]:
-                print "{} in playlist {} blocked in US".format(item["snippet"]["title"].encode("utf-8"), pl["snippet"]["title"].encode("utf-8"))
+                print "{} in playlist {} blocked in US".format(video_title, playlist_title)
 
                 #replace_video()
         except (IndexError, TypeError, KeyError):
@@ -114,7 +117,7 @@ def check_region_restrictions(pl, plir):
 
         try:
             if "US" not in item["contentDetails"]["regionRestriction"]["allowed"]:
-                print "{} in playlist {} not allowed in US".format(item["snippet"]["title"].encode("utf-8"), pl["snippet"]["title"].encode("utf-8"))
+                print "{} in playlist {} not allowed in US".format(video_title, playlist_title)
 
                 #replace_video()
         except (IndexError, TypeError, KeyError):
@@ -134,7 +137,7 @@ def patch_playlists(vd, pl, plir):
         # Check if video deleted or private in response AND if video already in videos_dict
         if (video_privacy_status == "private" or video_title == "Deleted video") and video_id in vd:
             print "Found bad video with record"
-            print "{} missing from {}".format(vd[video["snippet"]["resourceId"]["videoId"]], pl["snippet"]["title"].encode("utf-8"))
+            print "{} missing from {}".format(vd[video_id], playlist_title)
 
             bad_video_message += "{} missing from {}".format(vd[video_id], playlist_title)
 
