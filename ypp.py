@@ -23,7 +23,7 @@ if __name__ == "__main__":
             req = create_private_request()
             ch_req = create_private_channel_request()
 
-        process_request(req)
+        process_request(req, opt)
 
         if (opt.related):
             req = create_related_request(ch_req)

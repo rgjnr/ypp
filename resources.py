@@ -14,6 +14,7 @@ class Options():
         self.id = None
         self.username = None
         self.related = None
+        self.region_check = False
 
     def process_options(self, arguments):
         # Check for mutual exclusion of config options
@@ -53,6 +54,11 @@ class Options():
         except NameError:
             self.related = None
 
+        if arguments.country:
+            self.region_check = True
+        else:
+            self.region_check = False
+
 def process_arguments():
     parser = argparse.ArgumentParser(description="YouTube Playlist Patcher",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -63,6 +69,7 @@ def process_arguments():
     retrieval_method.add_argument("-u", "--username", help="Retrieve playlists using legacy YouTube username")
     parser.add_argument("-r", "--related", help="Also retrieve related playlists (likes, history, etc.)",
                         action="store_true")
+    parser.add_argument("-c", "--country", help="Check for country restrictions", action="store_true")
 
     return parser.parse_args()
 
@@ -124,7 +131,7 @@ def check_region_restrictions(pl, plir):
             pass
 
 # Analyze videos_dict and playlist responses for determining unavailaable videos
-def patch_playlists(vd, pl, plir):
+def patch_playlists(vd, pl, plir, opt):
     bad_video_message = ""
 
     # Check videos in response
@@ -146,7 +153,8 @@ def patch_playlists(vd, pl, plir):
             # remove old bad entry
             #del vd[video_id]
 
-    check_region_restrictions(pl, plir)
+    if opt.region_check:
+        check_region_restrictions(pl, plir)
 
     return bad_video_message
 
@@ -172,7 +180,7 @@ def send_email_notification(message):
     s.quit()
 
 # Main entry point for beginning checking of user's playlists using supplied request
-def process_request(playlists_request):
+def process_request(playlists_request, opt):
     videos_dict = {}
     email_message = ""
 
@@ -191,7 +199,7 @@ def process_request(playlists_request):
                 playlist_items_response = playlist_items_request.execute()
 
                 if VIDEOS_DICT_EXISTS:
-                    email_message += patch_playlists(videos_dict, playlist, playlist_items_response)
+                    email_message += patch_playlists(videos_dict, playlist, playlist_items_response, opt)
                 else:
                     create_videos_dict(videos_dict, playlist_items_response)
 
