@@ -131,7 +131,7 @@ def check_region_restrictions(pl, plir):
             pass
 
 # Analyze videos_dict and playlist responses for determining unavailaable videos
-def patch_playlists(vd, pl, plir, opt):
+def patch_playlists(vd, pl, plir):
     bad_video_message = ""
 
     # Check videos in response
@@ -152,9 +152,6 @@ def patch_playlists(vd, pl, plir, opt):
 
             # remove old bad entry
             #del vd[video_id]
-
-    if opt.region_check:
-        check_region_restrictions(pl, plir)
 
     return bad_video_message
 
@@ -199,9 +196,12 @@ def process_request(playlists_request, opt):
                 playlist_items_response = playlist_items_request.execute()
 
                 if VIDEOS_DICT_EXISTS:
-                    email_message += patch_playlists(videos_dict, playlist, playlist_items_response, opt)
+                    email_message += patch_playlists(videos_dict, playlist, playlist_items_response)
                 else:
                     create_videos_dict(videos_dict, playlist_items_response)
+
+                if opt.region_check:
+                    check_region_restrictions(playlist, playlist_items_response)
 
                 # Request next page of videos
                 playlist_items_request = create_next_page_request("playlistItem", playlist_items_request, playlist_items_response)
