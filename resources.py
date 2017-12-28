@@ -153,7 +153,7 @@ def patch_playlists(vd, pl, plir, opt):
 
         if opt.deleted:
             if video_title == "Deleted video" and video_id in vd:
-                print "{} missing from {}".format(vd[video_id], playlist_title)
+                print "{} deleted from {}".format(vd[video_id], playlist_title)
 
                 #replace_video(vd[video_id], pl["id"])
 
@@ -162,7 +162,7 @@ def patch_playlists(vd, pl, plir, opt):
 
         if opt.private:
             if video_privacy_status == "private" and video_id in vd:
-                print "{} missing from {}".format(vd[video_id], playlist_title)
+                print "{} made private in {}".format(vd[video_id], playlist_title)
 
                 #replace_video(vd[video_id], pl["id"])
 
