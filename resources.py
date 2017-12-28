@@ -62,8 +62,6 @@ class Options():
 
         if arguments.country:
             self.region_check = True
-        else:
-            self.region_check = False
 
         # Default usage, perform all checks when none specified
         if not arguments.deleted and not arguments.private and not arguments.country:
