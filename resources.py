@@ -139,7 +139,7 @@ def check_region_restrictions(pl, plir):
             pass
 
 # Analyze videos_dict and playlist responses for determining unavailaable videos
-def patch_playlists(vd, pl, plir):
+def patch_playlists(vd, pl, plir, opt):
     # Check videos in response
     for i, video in enumerate(plir["items"], start=1):
         video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
@@ -147,15 +147,25 @@ def patch_playlists(vd, pl, plir):
         video_id = video["snippet"]["resourceId"]["videoId"]
         playlist_title = pl["snippet"]["title"].encode("utf-8")
 
-        # Check if video deleted or private in response AND if video already in videos_dict
-        if (video_privacy_status == "private" or video_title == "Deleted video") and video_id in vd:
-            print "Found bad video with record"
-            print "{} missing from {}".format(vd[video_id], playlist_title)
+        if opt.deleted:
+            if video_title == "Deleted video" and video_id in vd:
+                print "Found bad video with record"
+                print "{} missing from {}".format(vd[video_id], playlist_title)
 
-            #replace_video(vd[video_id], pl["id"])
+                #replace_video(vd[video_id], pl["id"])
 
-            # remove old bad entry
-            #del vd[video_id]
+                # remove old bad entry
+                #del vd[video_id]
+
+        if opt.private:
+            if video_privacy_status == "private" and video_id in vd:
+                print "Found bad video with record"
+                print "{} missing from {}".format(vd[video_id], playlist_title)
+
+                #replace_video(vd[video_id], pl["id"])
+
+                # remove old bad entry
+                #del vd[video_id]
 
 def create_videos_dict(vd, plir):
     # Check videos in response
@@ -187,7 +197,7 @@ def process_request(playlists_request, opt):
                 playlist_items_response = playlist_items_request.execute()
 
                 if VIDEOS_DICT_EXISTS:
-                    patch_playlists(videos_dict, playlist, playlist_items_response)
+                    patch_playlists(videos_dict, playlist, playlist_items_response, opt)
                 else:
                     create_videos_dict(videos_dict, playlist_items_response)
 
