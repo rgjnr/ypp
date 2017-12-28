@@ -15,6 +15,7 @@ class Options():
         self.deleted = False
         self.private = False
         self.region_check = False
+        self.region_code = "US"
 
     def process_options(self, arguments):
         # Check for mutual exclusion of config options
@@ -81,7 +82,8 @@ def process_arguments():
                         action="store_true")
     parser.add_argument("-d", "--deleted", help="Check for deleted videos", action="store_true")
     parser.add_argument("-p", "--private", help="Check for private videos", action="store_true")
-    parser.add_argument("-c", "--country", help="Check for country restrictions", action="store_true")
+    parser.add_argument("-c", "--country", help="Check for country restrictions, default is US", action="store_true")
+    parser.add_argument("-cc", "--country-code", help="ISO 3166 alpha-2 country code used for checking country restrictions")
 
     return parser.parse_args()
 
