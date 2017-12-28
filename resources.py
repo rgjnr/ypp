@@ -65,6 +65,12 @@ class Options():
         else:
             self.region_check = False
 
+        # Default usage, perform all checks when none specified
+        if not arguments.deleted and not arguments.private and not arguments.country:
+            self.deleted = True
+            self.private = True
+            self.region_check = True
+
 def process_arguments():
     parser = argparse.ArgumentParser(description="YouTube Playlist Patcher",
         formatter_class=argparse.RawDescriptionHelpFormatter,
