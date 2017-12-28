@@ -1,10 +1,8 @@
 import sys
 import json
 import argparse
-import smtplib
 from youtube import *
 from config import *
-from email.mime.text import MIMEText
 from oauth2client.tools import argparser
 
 class Options():
@@ -142,8 +140,6 @@ def check_region_restrictions(pl, plir):
 
 # Analyze videos_dict and playlist responses for determining unavailaable videos
 def patch_playlists(vd, pl, plir):
-    bad_video_message = ""
-
     # Check videos in response
     for i, video in enumerate(plir["items"], start=1):
         video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
@@ -156,14 +152,10 @@ def patch_playlists(vd, pl, plir):
             print "Found bad video with record"
             print "{} missing from {}".format(vd[video_id], playlist_title)
 
-            bad_video_message += "{} missing from {}".format(vd[video_id], playlist_title)
-
             #replace_video(vd[video_id], pl["id"])
 
             # remove old bad entry
             #del vd[video_id]
-
-    return bad_video_message
 
 def create_videos_dict(vd, plir):
     # Check videos in response
@@ -176,20 +168,9 @@ def create_videos_dict(vd, plir):
     if not (video_privacy_status == "private" or video_title == "Deleted video"):
         vd.update(video_id=video_title)
 
-def send_email_notification(message):
-    msg = MIMEText(message)
-    msg['Subject'] = EMAIL_SUBJECT
-    msg['From'] = EMAIL_FROM
-    msg['To'] = EMAIL_TO
-
-    s = smtplib.SMTP(host=HOST, port=PORT)
-    s.sendmail(EMAIL_FROM, [EMAIL_TO], msg.as_string())
-    s.quit()
-
 # Main entry point for beginning checking of user's playlists using supplied request
 def process_request(playlists_request, opt):
     videos_dict = {}
-    email_message = ""
 
     VIDEOS_DICT_EXISTS = open_videos_dict(videos_dict)
 
@@ -206,7 +187,7 @@ def process_request(playlists_request, opt):
                 playlist_items_response = playlist_items_request.execute()
 
                 if VIDEOS_DICT_EXISTS:
-                    email_message += patch_playlists(videos_dict, playlist, playlist_items_response)
+                    patch_playlists(videos_dict, playlist, playlist_items_response)
                 else:
                     create_videos_dict(videos_dict, playlist_items_response)
 
@@ -218,8 +199,6 @@ def process_request(playlists_request, opt):
 
         # Request next page of playlists
         playlists_request = create_next_page_request("playlist", playlists_request, playlists_response)
-
-    send_email_notification(email_message)
 
     #write_videos_dict(videos_dict)
 
