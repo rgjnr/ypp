@@ -14,6 +14,8 @@ class Options():
         self.id = None
         self.username = None
         self.related = None
+        self.deleted = False
+        self.private = False
         self.region_check = False
 
     def process_options(self, arguments):
@@ -54,6 +56,12 @@ class Options():
         except NameError:
             self.related = None
 
+        if arguments.deleted:
+            self.deleted = True
+
+        if arguments.private:
+            self.private = True
+
         if arguments.country:
             self.region_check = True
         else:
@@ -69,6 +77,8 @@ def process_arguments():
     retrieval_method.add_argument("-u", "--username", help="Retrieve playlists using legacy YouTube username")
     parser.add_argument("-r", "--related", help="Also retrieve related playlists (likes, history, etc.)",
                         action="store_true")
+    parser.add_argument("-d", "--deleted", help="Check for deleted videos", action="store_true")
+    parser.add_argument("-p", "--private", help="Check for private videos", action="store_true")
     parser.add_argument("-c", "--country", help="Check for country restrictions", action="store_true")
 
     return parser.parse_args()
