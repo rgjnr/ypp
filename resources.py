@@ -14,8 +14,8 @@ class Options():
         self.related = None
         self.deleted = False
         self.private = False
-        self.region_check = False
-        self.region_code = "US"
+        self.country = False
+        self.country_code = "US"
 
     def process_options(self, arguments):
         # Check for mutual exclusion of config options
@@ -62,18 +62,18 @@ class Options():
             self.private = True
 
         if arguments.country:
-            self.region_check = True
+            self.country = True
 
         if arguments.country_code:
-            self.region_check = True
-            self.region_code = arguments.country_code
+            self.country = True
+            self.country_code = arguments.country_code
 
         # Default usage, perform all checks when none specified
         if (not arguments.deleted and not arguments.private
         and not arguments.country and not arguments.country_code):
             self.deleted = True
             self.private = True
-            self.region_check = True
+            self.country = True
 
 def process_arguments():
     parser = argparse.ArgumentParser(description="YouTube Playlist Patcher",
@@ -119,7 +119,7 @@ def write_videos_dict(vd):
 
     f.closed
 
-def check_region_restrictions(pl, plir, opt):
+def check_country_restrictions(pl, plir, opt):
     video_ids = ""
     playlist_title = pl["snippet"]["title"].encode("utf-8")
 
@@ -134,16 +134,16 @@ def check_region_restrictions(pl, plir, opt):
         video_title = item["snippet"]["title"].encode("utf-8")
 
         try:
-            if opt.region_code in item["contentDetails"]["regionRestriction"]["blocked"]:
-                print "{} in {} blocked in {}".format(video_title, playlist_title, opt.region_code)
+            if opt.country_code in item["contentDetails"]["regionRestriction"]["blocked"]:
+                print "{} in {} blocked in {}".format(video_title, playlist_title, opt.country_code)
 
                 #replace_video()
         except (IndexError, TypeError, KeyError):
             pass
 
         try:
-            if opt.region_code not in item["contentDetails"]["regionRestriction"]["allowed"]:
-                print "{} in {} not allowed in {}".format(video_title, playlist_title, opt.region_code)
+            if opt.country_code not in item["contentDetails"]["regionRestriction"]["allowed"]:
+                print "{} in {} not allowed in {}".format(video_title, playlist_title, opt.country_code)
 
                 #replace_video()
         except (IndexError, TypeError, KeyError):
@@ -210,8 +210,8 @@ def process_request(playlists_request, opt):
                 else:
                     create_videos_dict(videos_dict, playlist_items_response)
 
-                if opt.region_check:
-                    check_region_restrictions(playlist, playlist_items_response, opt)
+                if opt.country:
+                    check_country_restrictions(playlist, playlist_items_response, opt)
 
                 # Request next page of videos
                 playlist_items_request = create_next_page_request("playlistItem", playlist_items_request, playlist_items_response)
