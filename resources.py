@@ -76,8 +76,10 @@ class Options():
             self.country = True
 
 def process_arguments():
-    parser = argparse.ArgumentParser(description="YouTube Playlist Patcher - \
-    Maintain YouTube playlists by replacing missing videos with alternates")
+    parser = argparse.ArgumentParser(
+        description="YouTube Playlist Patcher - Maintain YouTube playlists by \
+            replacing missing videos with alternates",
+        parents=[argparser])
 
     retrieval_method = parser.add_mutually_exclusive_group()
     retrieval_method.add_argument("-i", "--id", help="Retrieve playlists using channel ID")
