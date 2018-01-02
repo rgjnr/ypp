@@ -138,7 +138,8 @@ def check_country_restrictions(pl, plir, opt):
             if opt.country_code in item["contentDetails"]["regionRestriction"]["blocked"]:
                 print "{} in {} blocked in {}".format(video_title, playlist_title, opt.country_code)
 
-                #replace_video()
+                replace_video(video_title, pl["id"])
+
         except (IndexError, TypeError, KeyError):
             pass
 
@@ -146,7 +147,8 @@ def check_country_restrictions(pl, plir, opt):
             if opt.country_code not in item["contentDetails"]["regionRestriction"]["allowed"]:
                 print "{} in {} not allowed in {}".format(video_title, playlist_title, opt.country_code)
 
-                #replace_video()
+                replace_video(video_title, pl["id"])
+
         except (IndexError, TypeError, KeyError):
             pass
 
@@ -158,12 +160,13 @@ def patch_playlists(vd, pl, plir, opt):
         video_title = video["snippet"]["title"].encode("utf-8")
         video_id = video["snippet"]["resourceId"]["videoId"]
         playlist_title = pl["snippet"]["title"].encode("utf-8")
+        video_playlist_position = video["snippet"]["position"]
 
         if opt.deleted:
             if video_title == "Deleted video" and video_id in vd:
                 print "{} deleted from {}".format(vd[video_id], playlist_title)
 
-                #replace_video(vd[video_id], pl["id"])
+                replace_video(vd[video_id], pl["id"], video_playlist_position)
 
                 # remove old bad entry
                 #del vd[video_id]
@@ -172,7 +175,7 @@ def patch_playlists(vd, pl, plir, opt):
             if video_privacy_status == "private" and video_id in vd:
                 print "{} made private in {}".format(vd[video_id], playlist_title)
 
-                #replace_video(vd[video_id], pl["id"])
+                replace_video(vd[video_id], pl["id"], video_playlist_position)
 
                 # remove old bad entry
                 #del vd[video_id]
@@ -222,27 +225,38 @@ def process_request(playlists_request, opt):
 
     #write_videos_dict(videos_dict)
 
-def replace_video(video_title, playlist_id):
+def replace_video(video_title, playlist_id, position):
     video_search_request = create_video_search_request(video_title)
-
     video_search_response = video_search_request.execute()
-
-    print json.dumps(video_search_response, indent=4, separators=(',',':'))
 
     try:
         new_video_id = video_search_response["items"][0]["id"]["videoId"]
     except:
-        print "blah"
+        print "No alternate video found for {}".format(video_title)
 
     try:
         new_video_title = video_search_response["items"][0]["snippet"]["title"]
     except:
-        print "blah"
+        print "No alternate video found for {}".format(video_title)
 
-    print new_video_id
-    print new_video_title
+    if new_video_id:
+        playlist_items_insert_request = create_playlist_items_insert_request(playlist_id, position, new_video_id)
 
-    video_search_request = create_playlist_items_insert_request(playlist_id, position, new_video_id)
+        try:
+            playlist_items_insert_response = playlist_items_insert_request.execute()
+        except Exception as e:
+            print(e)
+            return
+
+        print "{} replaced with {}".format(video_title, new_video_title)
+    else:
+        print "{} not replaced".format(video_title)
+
+    #try:
+    #    print "{} replaced with {}".format(video_title, new_video_title)
+    #except:
+    #    print "{} not replaced"
+    #    #pass
 
     # remove bad vidoe from playlist
     # create playlistitems delete request
