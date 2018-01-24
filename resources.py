@@ -170,7 +170,7 @@ def patch_playlists(vd, pl, plir, opt):
                 replace_video(vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
 
                 # remove old bad entry
-                #del vd[video_id]
+                del vd[video_id]
 
         if opt.private:
             if video_privacy_status == "private" and video_id in vd:
@@ -179,7 +179,7 @@ def patch_playlists(vd, pl, plir, opt):
                 replace_video(vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
 
                 # remove old bad entry
-                #del vd[video_id]
+                del vd[video_id]
 
 def create_videos_dict(vd, plir):
     # Check videos in response
