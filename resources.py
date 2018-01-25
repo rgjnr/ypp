@@ -167,7 +167,7 @@ def patch_playlists(vd, pl, plir, opt):
             if video_title == "Deleted video" and video_id in vd:
                 print "{} deleted from {}".format(vd[video_id], playlist_title)
 
-                replace_video(vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
+                replace_video(vd, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
 
                 # remove old bad entry
                 del vd[video_id]
@@ -176,7 +176,7 @@ def patch_playlists(vd, pl, plir, opt):
             if video_privacy_status == "private" and video_id in vd:
                 print "{} made private in {}".format(vd[video_id], playlist_title)
 
-                replace_video(vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
+                replace_video(vd, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
 
                 # remove old bad entry
                 del vd[video_id]
@@ -226,7 +226,7 @@ def process_request(playlists_request, opt):
 
     write_videos_dict(videos_dict)
 
-def replace_video(video_title, playlist_id, position, playlist_item_id):
+def replace_video(vd, video_title, playlist_id, position, playlist_item_id):
     video_search_request = create_video_search_request(video_title)
     video_search_response = video_search_request.execute()
 
@@ -257,6 +257,9 @@ def replace_video(video_title, playlist_id, position, playlist_item_id):
         except Exception as e:
             print(e)
             return
+
+        # Update video dictionary with replaced video
+        vd[new_video_id] = new_video_title
 
         print "{} replaced with {}".format(video_title, new_video_title)
     else:
