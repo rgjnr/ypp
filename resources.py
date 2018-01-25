@@ -224,7 +224,7 @@ def process_request(playlists_request, opt):
         # Request next page of playlists
         playlists_request = create_next_page_request("playlist", playlists_request, playlists_response)
 
-    #write_videos_dict(videos_dict)
+    write_videos_dict(videos_dict)
 
 def replace_video(video_title, playlist_id, position, playlist_item_id):
     video_search_request = create_video_search_request(video_title)
