@@ -120,7 +120,7 @@ def write_videos_dict(vd):
 
     f.closed
 
-def check_country_restrictions(pl, plir, opt):
+def check_country_restrictions(vd, pl, plir, opt):
     video_ids = ""
     playlist_title = pl["snippet"]["title"].encode("utf-8")
 
@@ -131,14 +131,17 @@ def check_country_restrictions(pl, plir, opt):
     video_list_request = create_video_list_request(video_ids)
     video_list_response = video_list_request.execute()
 
-    for item in video_list_response["items"]:
+    for i, item in enumerate(video_list_response["items"], start=0):
         video_title = item["snippet"]["title"].encode("utf-8")
+        video_id = item["id"]
+        video_playlist_position = plir["items"][i]["snippet"]["position"]
+        playlist_item_id = plir["items"][i]["id"]
 
         try:
             if opt.country_code in item["contentDetails"]["regionRestriction"]["blocked"]:
                 print "{} in {} blocked in {}".format(video_title, playlist_title, opt.country_code)
 
-                replace_video(video_title, pl["id"], playlist_item_id)
+                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id)
 
         except (IndexError, TypeError, KeyError):
             pass
@@ -147,7 +150,7 @@ def check_country_restrictions(pl, plir, opt):
             if opt.country_code not in item["contentDetails"]["regionRestriction"]["allowed"]:
                 print "{} in {} not allowed in {}".format(video_title, playlist_title, opt.country_code)
 
-                replace_video(video_title, pl["id"])
+                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id)
 
         except (IndexError, TypeError, KeyError):
             pass
@@ -167,19 +170,13 @@ def patch_playlists(vd, pl, plir, opt):
             if video_title == "Deleted video" and video_id in vd:
                 print "{} deleted from {}".format(vd[video_id], playlist_title)
 
-                replace_video(vd, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
-
-                # remove old bad entry
-                del vd[video_id]
+                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
 
         if opt.private:
             if video_privacy_status == "private" and video_id in vd:
                 print "{} made private in {}".format(vd[video_id], playlist_title)
 
-                replace_video(vd, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
-
-                # remove old bad entry
-                del vd[video_id]
+                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
 
 def create_videos_dict(vd, plir):
     # Check videos in response
@@ -216,7 +213,7 @@ def process_request(playlists_request, opt):
                     create_videos_dict(videos_dict, playlist_items_response)
 
                 if opt.country:
-                    check_country_restrictions(playlist, playlist_items_response, opt)
+                    check_country_restrictions(videos_dict, playlist, playlist_items_response, opt)
 
                 # Request next page of videos
                 playlist_items_request = create_next_page_request("playlistItem", playlist_items_request, playlist_items_response)
@@ -226,7 +223,7 @@ def process_request(playlists_request, opt):
 
     write_videos_dict(videos_dict)
 
-def replace_video(vd, video_title, playlist_id, position, playlist_item_id):
+def replace_video(vd, video_id, video_title, playlist_id, position, playlist_item_id):
     video_search_request = create_video_search_request(video_title)
     video_search_response = video_search_request.execute()
 
@@ -260,6 +257,9 @@ def replace_video(vd, video_title, playlist_id, position, playlist_item_id):
 
         # Update video dictionary with replaced video
         vd[new_video_id] = new_video_title
+
+        # remove old bad entry
+        del vd[video_id]
 
         print "{} replaced with {}".format(video_title, new_video_title)
     else:
