@@ -1,10 +1,8 @@
 import sys
 import json
 import argparse
-import smtplib
 from youtube import *
 from config import *
-from email.mime.text import MIMEText
 from oauth2client.tools import argparser
 
 class Options():
@@ -14,6 +12,10 @@ class Options():
         self.id = None
         self.username = None
         self.related = None
+        self.deleted = False
+        self.private = False
+        self.country = False
+        self.country_code = "US"
 
     def process_options(self, arguments):
         # Check for mutual exclusion of config options
@@ -53,9 +55,30 @@ class Options():
         except NameError:
             self.related = None
 
+        if arguments.deleted:
+            self.deleted = True
+
+        if arguments.private:
+            self.private = True
+
+        if arguments.country:
+            self.country = True
+
+        if arguments.country_code:
+            self.country = True
+            self.country_code = arguments.country_code
+
+        # Default usage, perform all checks when none specified
+        if (not arguments.deleted and not arguments.private
+        and not arguments.country and not arguments.country_code):
+            self.deleted = True
+            self.private = True
+            self.country = True
+
 def process_arguments():
-    parser = argparse.ArgumentParser(description="YouTube Playlist Patcher",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+    parser = argparse.ArgumentParser(
+        description="YouTube Playlist Patcher - Maintain YouTube playlists by \
+            replacing missing videos with alternates",
         parents=[argparser])
 
     retrieval_method = parser.add_mutually_exclusive_group()
@@ -63,28 +86,114 @@ def process_arguments():
     retrieval_method.add_argument("-u", "--username", help="Retrieve playlists using legacy YouTube username")
     parser.add_argument("-r", "--related", help="Also retrieve related playlists (likes, history, etc.)",
                         action="store_true")
+    parser.add_argument("-d", "--deleted", help="Check for deleted videos", action="store_true")
+    parser.add_argument("-p", "--private", help="Check for private videos", action="store_true")
+    parser.add_argument("-c", "--country", help="Check for country restrictions, default is US", action="store_true")
+    parser.add_argument("-cc", "--country-code", help="ISO 3166 alpha-2 country code used for checking country restrictions")
 
     return parser.parse_args()
 
-# Checks playlists for missing videos (deleted or private) using the provided request
-def patch_playlists(playlists_request):
-    email_message = ""
-
+# open videos_dict.json file and deserialize videos dictionary
+def open_videos_dict(vd):
     try:
         with open('videos_dict.json', 'r') as f:
             try:
-                videos_dict = json.load(f)
+                # use update method of dict object to force updating original
+                # dict object passed from process_request()
+                vd.update(json.load(f))
 
-                if videos_dict is not None:
+                if vd is not None:
                     VIDEOS_DICT_EXISTS = True
 
                 f.closed
             except:
-                videos_dict = {}
                 VIDEOS_DICT_EXISTS = False
     except:
-        videos_dict = {}
         VIDEOS_DICT_EXISTS = False
+
+    return VIDEOS_DICT_EXISTS
+
+# serialze videos dictionary and write to videos_dict.json file
+def write_videos_dict(vd):
+    with open("videos_dict.json", "w") as f:
+        json.dump(vd, f)
+
+    f.closed
+
+def check_country_restrictions(vd, pl, plir, opt):
+    video_ids = ""
+    playlist_title = pl["snippet"]["title"].encode("utf-8")
+
+    for video in plir["items"]:
+        video_id = video["snippet"]["resourceId"]["videoId"]
+        video_ids += "{},".format(video_id)
+
+    video_list_request = create_video_list_request(video_ids)
+    video_list_response = video_list_request.execute()
+
+    for i, item in enumerate(video_list_response["items"], start=0):
+        video_title = item["snippet"]["title"].encode("utf-8")
+        video_id = item["id"]
+        video_playlist_position = plir["items"][i]["snippet"]["position"]
+        playlist_item_id = plir["items"][i]["id"]
+
+        try:
+            if opt.country_code in item["contentDetails"]["regionRestriction"]["blocked"]:
+                print "{} in {} blocked in {}".format(video_title, playlist_title, opt.country_code)
+
+                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id)
+
+        except (IndexError, TypeError, KeyError):
+            pass
+
+        try:
+            if opt.country_code not in item["contentDetails"]["regionRestriction"]["allowed"]:
+                print "{} in {} not allowed in {}".format(video_title, playlist_title, opt.country_code)
+
+                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id)
+
+        except (IndexError, TypeError, KeyError):
+            pass
+
+# Analyze videos_dict and playlist responses for determining unavailaable videos
+def patch_playlists(vd, pl, plir, opt):
+    # Check videos in response
+    for i, video in enumerate(plir["items"], start=1):
+        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
+        video_title = video["snippet"]["title"].encode("utf-8")
+        video_id = video["snippet"]["resourceId"]["videoId"]
+        playlist_title = pl["snippet"]["title"].encode("utf-8")
+        video_playlist_position = video["snippet"]["position"]
+        playlist_item_id = video["id"]
+
+        if opt.deleted:
+            if video_title == "Deleted video" and video_id in vd:
+                print "{} deleted from {}".format(vd[video_id], playlist_title)
+
+                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
+
+        if opt.private:
+            if video_privacy_status == "private" and video_id in vd:
+                print "{} made private in {}".format(vd[video_id], playlist_title)
+
+                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
+
+def create_videos_dict(vd, plir):
+    # Check videos in response
+    for i, video in enumerate(plir["items"], start=1):
+        video_privacy_status = video["status"]["privacyStatus"].encode("utf-8")
+        video_title = video["snippet"]["title"].encode("utf-8")
+        video_id = video["snippet"]["resourceId"]["videoId"]
+
+    # Create entries for videos in videos dictionary that are not deleted or private
+    if not (video_privacy_status == "private" or video_title == "Deleted video"):
+        vd.update(video_id=video_title)
+
+# Main entry point for beginning checking of user's playlists using supplied request
+def process_request(playlists_request, opt):
+    videos_dict = {}
+
+    VIDEOS_DICT_EXISTS = open_videos_dict(videos_dict)
 
     # Fetch pages of playlists until end
     while playlists_request:
@@ -99,28 +208,12 @@ def patch_playlists(playlists_request):
                 playlist_items_response = playlist_items_request.execute()
 
                 if VIDEOS_DICT_EXISTS:
-                    # Check videos in response
-                    for i, video in enumerate(playlist_items_response["items"], start=1):
-                        # Check if video deleted or private in response AND if video already in videos_dict
-                        if (video["status"]["privacyStatus"].encode("utf-8") == "private" or video["snippet"]["title"].encode("utf-8") == "Deleted video") and video["snippet"]["resourceId"]["videoId"] in videos_dict:
-                            print "Found bad video with record"
-                            print "{} missing from {}".format(videos_dict[video["snippet"]["resourceId"]["videoId"]], playlist["snippet"]["title"].encode("utf-8"))
-
-                            bad_video_message = "{} missing from {}".format(videos_dict[video["snippet"]["resourceId"]["videoId"]], playlist["snippet"]["title"].encode("utf-8"))
-
-                            # add to email message
-                            email_message += bad_video_message
-
-                            #replace_video(videos_dict[video["snippet"]["resourceId"]["videoId"]], playlist["id"])
-#
-#                            # remove old bad entry
-#                            del videos_dict[video["snippet"]["resourceId"]["videoId"]]
+                    patch_playlists(videos_dict, playlist, playlist_items_response, opt)
                 else:
-                    # Check videos in response
-                    for i, video in enumerate(playlist_items_response["items"], start=1):
-                        # Create entries for videos in videos dictionary that are not deleted or private
-                        if not (video["status"]["privacyStatus"].encode("utf-8") == "private" or video["snippet"]["title"].encode("utf-8") == "Deleted video"):
-                            videos_dict[video["snippet"]["resourceId"]["videoId"]] = video["snippet"]["title"].encode("utf-8")
+                    create_videos_dict(videos_dict, playlist_items_response)
+
+                if opt.country:
+                    check_country_restrictions(videos_dict, playlist, playlist_items_response, opt)
 
                 # Request next page of videos
                 playlist_items_request = create_next_page_request("playlistItem", playlist_items_request, playlist_items_response)
@@ -128,43 +221,46 @@ def patch_playlists(playlists_request):
         # Request next page of playlists
         playlists_request = create_next_page_request("playlist", playlists_request, playlists_response)
 
-    # send email notification
-    msg = MIMEText(email_message)
-    msg['Subject'] = EMAIL_SUBJECT
-    msg['From'] = EMAIL_FROM
-    msg['To'] = EMAIL_TO
+    write_videos_dict(videos_dict)
 
-    s = smtplib.SMTP(host=HOST, port=PORT)
-    s.sendmail(EMAIL_FROM, [EMAIL_TO], msg.as_string())
-    s.quit()
-
-#    with open("videos_dict.json", "w") as f:
-#        json.dump(videos_dict, f)
-#
-#    f.closed
-
-def replace_video(video_title, playlist_id):
+def replace_video(vd, video_id, video_title, playlist_id, position, playlist_item_id):
     video_search_request = create_video_search_request(video_title)
-
     video_search_response = video_search_request.execute()
-
-    print json.dumps(video_search_response, indent=4, separators=(',',':'))
 
     try:
         new_video_id = video_search_response["items"][0]["id"]["videoId"]
     except:
-        print "blah"
+        print "No alternate video found for {}".format(video_title)
 
     try:
         new_video_title = video_search_response["items"][0]["snippet"]["title"]
     except:
-        print "blah"
+        print "No alternate video found for {}".format(video_title)
 
-    print new_video_id
-    print new_video_title
+    if new_video_id:
+        playlist_items_insert_request = create_playlist_items_insert_request(playlist_id, position, new_video_id)
 
-    video_search_request = create_playlist_items_insert_request(playlist_id, position, new_video_id)
+        try:
+            playlist_items_insert_response = playlist_items_insert_request.execute()
+        except Exception as e:
+            print(e)
+            return
 
-    # remove bad vidoe from playlist
-    # create playlistitems delete request
-    #video_search_request = youtube.playlistItems().delete()
+        # Remove missing video from playlist
+        playlist_items_delete_request = create_playlist_items_delete_request(playlist_item_id)
+
+        try:
+            playlist_items_delete_response = playlist_items_delete_request.execute()
+        except Exception as e:
+            print(e)
+            return
+
+        # Update video dictionary with replaced video
+        vd[new_video_id] = new_video_title
+
+        # remove old bad entry
+        del vd[video_id]
+
+        print "{} replaced with {}".format(video_title, new_video_title)
+    else:
+        print "{} not replaced".format(video_title)

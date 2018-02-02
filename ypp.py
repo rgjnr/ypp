@@ -11,7 +11,11 @@ if __name__ == "__main__":
     opt.process_options(args)
 
     try:
-        youtube = create_resource_object(opt.id, opt.username, args)
+        # Create youtube resource object using appropriate authorization method
+        if args.id or args.username:
+            youtube = create_resource_object_using_key()
+        else:
+            youtube = create_resource_object_using_oauth2(args)
 
         if (args.id or opt.id_config and args.username is None):
             req = create_id_request(opt.id)
@@ -23,11 +27,11 @@ if __name__ == "__main__":
             req = create_private_request()
             ch_req = create_private_channel_request()
 
-        patch_playlists(req)
+        process_request(req, opt)
 
         if (opt.related):
             req = create_related_request(ch_req)
-            patch_playlists(req)
+            process_request(req)
 
     except HttpError as e:
         print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
