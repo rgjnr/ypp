@@ -16,6 +16,7 @@ class Options():
         self.private = False
         self.country = False
         self.country_code = "US"
+        self.dry_run = False
 
     def process_options(self, arguments):
         # Check for mutual exclusion of config options
@@ -75,6 +76,9 @@ class Options():
             self.private = True
             self.country = True
 
+        if arguments.dry_run:
+            self.dry_run = True
+
 def process_arguments():
     parser = argparse.ArgumentParser(
         description="YouTube Playlist Patcher - Maintain YouTube playlists by \
@@ -90,6 +94,7 @@ def process_arguments():
     parser.add_argument("-p", "--private", help="Check for private videos", action="store_true")
     parser.add_argument("-c", "--country", help="Check for country restrictions, default is US", action="store_true")
     parser.add_argument("-cc", "--country-code", help="ISO 3166 alpha-2 country code used for checking country restrictions")
+    parser.add_argument("-n", "--dry-run", help="Show missing videos in playlists and their replacements without making changes", action="store_true")
 
     return parser.parse_args()
 
@@ -141,7 +146,7 @@ def check_country_restrictions(vd, pl, plir, opt):
             if opt.country_code in item["contentDetails"]["regionRestriction"]["blocked"]:
                 print "{} in {} blocked in {}".format(video_title, playlist_title, opt.country_code)
 
-                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id)
+                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id, opt)
 
         except (IndexError, TypeError, KeyError):
             pass
@@ -150,7 +155,7 @@ def check_country_restrictions(vd, pl, plir, opt):
             if opt.country_code not in item["contentDetails"]["regionRestriction"]["allowed"]:
                 print "{} in {} not allowed in {}".format(video_title, playlist_title, opt.country_code)
 
-                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id)
+                replace_video(vd, video_id, video_title, pl["id"], video_playlist_position, playlist_item_id, opt)
 
         except (IndexError, TypeError, KeyError):
             pass
@@ -170,13 +175,13 @@ def patch_playlists(vd, pl, plir, opt):
             if video_title == "Deleted video" and video_id in vd:
                 print "{} deleted from {}".format(vd[video_id], playlist_title)
 
-                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
+                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id, opt)
 
         if opt.private:
             if video_privacy_status == "private" and video_id in vd:
                 print "{} made private in {}".format(vd[video_id], playlist_title)
 
-                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id)
+                replace_video(vd, video_id, vd[video_id], pl["id"], video_playlist_position, playlist_item_id, opt)
 
 def create_videos_dict(vd, plir):
     # Check videos in response
@@ -221,9 +226,10 @@ def process_request(playlists_request, opt):
         # Request next page of playlists
         playlists_request = create_next_page_request("playlist", playlists_request, playlists_response)
 
-    write_videos_dict(videos_dict)
+    if not opt.dry_run:
+        write_videos_dict(videos_dict)
 
-def replace_video(vd, video_id, video_title, playlist_id, position, playlist_item_id):
+def replace_video(vd, video_id, video_title, playlist_id, position, playlist_item_id, opt):
     video_search_request = create_video_search_request(video_title)
     video_search_response = video_search_request.execute()
 
@@ -238,28 +244,29 @@ def replace_video(vd, video_id, video_title, playlist_id, position, playlist_ite
         print "No alternate video found for {}".format(video_title)
 
     if new_video_id:
-        playlist_items_insert_request = create_playlist_items_insert_request(playlist_id, position, new_video_id)
+        if not opt.dry_run:
+            playlist_items_insert_request = create_playlist_items_insert_request(playlist_id, position, new_video_id)
 
-        try:
-            playlist_items_insert_response = playlist_items_insert_request.execute()
-        except Exception as e:
-            print(e)
-            return
+            try:
+                playlist_items_insert_response = playlist_items_insert_request.execute()
+            except Exception as e:
+                print(e)
+                return
 
-        # Remove missing video from playlist
-        playlist_items_delete_request = create_playlist_items_delete_request(playlist_item_id)
+            # Remove missing video from playlist
+            playlist_items_delete_request = create_playlist_items_delete_request(playlist_item_id)
 
-        try:
-            playlist_items_delete_response = playlist_items_delete_request.execute()
-        except Exception as e:
-            print(e)
-            return
+            try:
+                playlist_items_delete_response = playlist_items_delete_request.execute()
+            except Exception as e:
+                print(e)
+                return
 
-        # Update video dictionary with replaced video
-        vd[new_video_id] = new_video_title
+            # Update video dictionary with replaced video
+            vd[new_video_id] = new_video_title
 
-        # remove old bad entry
-        del vd[video_id]
+            # remove old bad entry
+            del vd[video_id]
 
         print "{} replaced with {}".format(video_title, new_video_title)
     else:
